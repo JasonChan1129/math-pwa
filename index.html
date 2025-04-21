@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spoken Math Challenge</title>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4CAF50">
+<!-- <link rel="icon" href="icon-192.png" sizes="192x192"> -->
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f0f0f0;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    #question {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    #timer, #feedback {
+      color: gray;
+      font-size: 1rem;
+      margin-top: 1rem;
+    }
+    input {
+      font-size: 1rem;
+      padding: 0.5rem;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Spoken Math Challenge</h1>
+  <div id="question">Get ready...</div>
+  <input id="answerInput" type="number" placeholder="Your answer" />
+  <div id="feedback"></div>
+  <div id="timer"></div>
+
+  <script>
+    const questionEl = document.getElementById('question');
+    const timerEl = document.getElementById('timer');
+    const feedbackEl = document.getElementById('feedback');
+    const answerInput = document.getElementById('answerInput');
+
+    let correctAnswer = null;
+    let waitingForNext = false;
+    let countdownInterval;
+
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      speechSynthesis.speak(utterance);
+    }
+
+    function generateQuestion() {
+      const isMultiply = Math.random() < 0.5;
+      let a, b, questionText;
+
+      if (isMultiply) {
+        a = getRandomInt(10, 99);
+        b = getRandomInt(10, 99);
+        correctAnswer = a * b;
+        questionText = `What is ${a} times ${b}?`;
+      } else {
+        a = getRandomInt(100, 999);
+        b = getRandomInt(100, 999);
+        correctAnswer = a + b;
+        questionText = `What is ${a} plus ${b}?`;
+      }
+
+      questionEl.textContent = questionText;
+      speak(questionText);
+      answerInput.value = '';
+      answerInput.disabled = false;
+      feedbackEl.textContent = '';
+      waitingForNext = false;
+    }
+
+    function checkAnswer() {
+      if (waitingForNext) return;
+
+      const userAnswer = parseInt(answerInput.value, 10);
+      if (isNaN(userAnswer)) {
+        feedbackEl.textContent = '';
+        return;
+      }
+
+      if (userAnswer === correctAnswer) {
+        feedbackEl.textContent = '✅ Correct! Next question in 90 seconds.';
+        speak('Correct!');
+        answerInput.disabled = true;
+        startCountdown(90);
+        waitingForNext = true;
+      } else {
+        feedbackEl.textContent = '❌ Try again.';
+      }
+    }
+
+    function startCountdown(seconds) {
+      clearInterval(countdownInterval);
+      let remaining = seconds;
+      timerEl.textContent = `Next question in: ${remaining} seconds`;
+
+      countdownInterval = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(countdownInterval);
+          timerEl.textContent = '';
+          generateQuestion();
+        } else {
+          timerEl.textContent = `Next question in: ${remaining} seconds`;
+        }
+      }, 1000);
+    }
+
+    // Listen for input change
+    answerInput.addEventListener('input', checkAnswer);
+
+    // Start the first question after 1 second
+    setTimeout(generateQuestion, 1000);
+
+    if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('Service Worker registered!'))
+      .catch(err => console.log('Service Worker registration failed:', err));
+  }
+  </script>
+
+</body>
+</html>
